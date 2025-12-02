@@ -2,11 +2,11 @@
   'use strict';
   // ====== State ======
   function normalizeBase(url) {
-    if (!url) return 'http://localhost:3001';
+    if (!url) return window.location.origin;
     let base = url.trim().replace(/\/+$/, '').replace(/\/?api$/, '');
     return base;
   }
-  let API_URL = normalizeBase(localStorage.getItem('apiUrl') || 'http://localhost:3001');
+  let API_URL = normalizeBase(localStorage.getItem('apiUrl') || window.location.origin);
   let adminToken = sessionStorage.getItem('adminToken');
   let createMDE = null; let editMDE = null;
   const slugCache = new Map();
