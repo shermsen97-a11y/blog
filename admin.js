@@ -43,15 +43,26 @@ module.exports = function(database) {
   // GET all posts (admin view - including drafts)
   router.get('/posts', authenticateAdmin, async (req, res) => {
     try {
-      const posts = database.posts || [];
-      const sortedPosts = posts.sort((a, b) => 
-        new Date(b.updatedAt) - new Date(a.updatedAt)
-      );
+      // Get all posts including drafts (no filter)
+      const allPosts = await database.getPosts({});
+      
+      // Also get drafts explicitly by querying without status filter
+      // For PostgreSQL we need to query directly
+      let posts = [];
+      if (database.pool) {
+        // PostgreSQL - get all posts regardless of status
+        const result = await database.pool.query('SELECT * FROM posts ORDER BY updated_at DESC');
+        posts = result.rows.map(database.mapPostFromDb.bind(database));
+      } else {
+        // In-memory - access directly
+        posts = database.posts || [];
+        posts = posts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      }
 
       res.json({
         success: true,
-        count: sortedPosts.length,
-        posts: sortedPosts
+        count: posts.length,
+        posts: posts
       });
     } catch (error) {
       res.status(500).json({ success: false, error: error.message });
