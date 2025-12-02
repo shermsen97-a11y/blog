@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - PubQuiz.pro Blog</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+  <div id="loginSection" class="login-container">
+    <div class="login-form">
+      <h1>🔐 Admin Panel</h1>
+      <p style="text-align:center;color:#64748b;margin-bottom:20px;">Voer je admin secret in</p>
+      <div class="form-group">
+        <label>Admin Secret</label>
+        <input type="password" id="adminSecret" placeholder="*****" />
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="login()" style="flex:1;">Login</button>
+        <button class="btn btn-secondary" onclick="testConnection()" style="flex:1;">Test verbinding</button>
+      </div>
+      <div id="loginMessage" style="display:none;margin-top:12px;"></div>
+      <p style="text-align:center;color:#94a3b8;margin-top:15px;font-size:0.9em;">Secret staat in je .env file</p>
+    </div>
+  </div>
+
+  <div id="adminSection" class="admin-container" style="display:none;">
+    <div class="sidebar">
+      <div class="sidebar-header">🚀 PubQuiz Admin</div>
+      <ul class="sidebar-nav">
+        <li><a class="nav-link active" onclick="showTab('dashboard', event)">📊 Dashboard</a></li>
+        <li><a class="nav-link" onclick="showTab('posts', event)">📝 Posts</a></li>
+        <li><a class="nav-link" onclick="showTab('new-post', event)">➕ Nieuw Post</a></li>
+        <li><a class="nav-link" onclick="showTab('categories', event)">📂 Categorieën</a></li>
+        <li><a class="nav-link" onclick="showTab('upcoming', event)">📅 Binnenkort</a></li>
+        <li><a class="nav-link" onclick="showTab('settings', event)">⚙️ Instellingen</a></li>
+      </ul>
+    </div>
+    <div class="main-content">
+      <div class="header">
+        <h1>Admin Panel</h1>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <div id="message" style="display:none;"></div>
+      <div id="dashboard" class="tab-content active">
+        <h2>📊 Dashboard</h2>
+        <div class="stats-grid" id="statsContainer"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div id="posts" class="tab-content">
+        <h2>📝 Posts Beheren</h2>
+        <div id="postsContainer" style="margin-top:20px;"></div>
+      </div>
+      <div id="new-post" class="tab-content">
+        <h2>➕ Nieuw Post</h2>
+        <form onsubmit="createPost(event)" style="max-width:800px;" novalidate>
+          <div class="form-group"><label>Titel *</label><input type="text" id="postTitle" required /></div>
+          <div class="form-group"><label>Slug (URL-friendly)</label><input type="text" id="postSlug" /><small id="slugHelp" style="color:#64748b;display:block;margin-top:6px;">Slug moet uniek zijn</small></div>
+          <div class="form-group"><label>Categorie</label><select id="postCategory"></select></div>
+          <div class="form-group"><label>Samenvatting</label><input type="text" id="postExcerpt" placeholder="Korte samenvatting..." /></div>
+          <div class="form-group"><label>Inhoud * (Markdown)</label><textarea id="postContent" name="content" placeholder="# Titel\n\nJe content hier..." tabindex="-1"></textarea></div>
+          <div class="form-group"><label>Afbeeldings URL</label><input type="text" id="postImage" placeholder="https://..." /></div>
+          <div class="form-group"><label><input type="checkbox" id="postFeatured" /> Featured Post</label></div>
+          <div class="form-group"><label>Status</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;"><label><input type="radio" name="postStatus" value="draft" checked /> Draft</label><label><input type="radio" name="postStatus" value="published" /> Publiceer nu</label><label><input type="radio" name="postStatus" value="scheduled" /> Plan publicatie</label><input type="datetime-local" id="postSchedule" style="display:none;" /></div><small style="color:#64748b;display:block;margin-top:6px;">Bij plannen blijft de post draft tot de geplande tijd.</small></div>
+          <button type="submit" class="btn btn-primary">Publish</button>
+        </form>
+      </div>
+      <div id="categories" class="tab-content">
+        <h2>📂 Categorieën</h2>
+        <div class="form-group" style="max-width:600px;display:flex;gap:10px;align-items:center;">
+          <input type="text" id="newCategoryName" placeholder="Nieuwe categorie..." />
+          <button class="btn btn-primary" onclick="addCategory()" type="button">Toevoegen</button>
+          <button class="btn btn-secondary" onclick="loadCategoriesAdmin()" type="button">Vernieuwen</button>
+        </div>
+        <div id="categoriesList" class="section"></div>
+      </div>
+      <div id="settings" class="tab-content">
+        <h2>⚙️ Instellingen</h2>
+        <div class="form-group"><label>API Base URL</label><input type="text" id="apiUrl" value="http://localhost:3001" /><small style="color:#64748b;">Update dit als je backend ergens anders draait</small></div>
+        <button class="btn btn-secondary" onclick="saveSettings()">Settings Opslaan</button>
+        <button class="btn btn-primary" style="margin-left:10px;" onclick="testConnection()">Test verbinding</button>
+      </div>
+      <div id="upcoming" class="tab-content">
+        <h2>📅 Binnenkort</h2>
+        <div class="form-group"><textarea id="upcomingText" rows="8" placeholder="Eén item per regel. Bijvoorbeeld: \n🎮 Top 5 Themaquizzen - Ideale thema's voor je volgende quiz avond."></textarea><small style="color:#64748b;display:block;margin-top:6px;">Tip: klik op een concepttitel hieronder om toe te voegen</small><div id="draftSuggestions" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+        <div><button class="btn btn-primary" onclick="saveUpcoming()">Sla op</button></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/simplemde@1.11.2/dist/simplemde.min.js"></script>
+  <div id="editModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:1000;">
+    <div style="background:#fff;width:min(900px,96vw);max-height:92vh;overflow:auto;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+      <div style="padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;color:#0f172a;">Post bewerken</h3>
+        <button class="btn btn-secondary btn-small" onclick="closeEditModal()">Sluiten</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <form id="editForm" onsubmit="saveEdit(event)">
+          <input type="hidden" id="editId" />
+          <div class="form-group"><label>Titel</label><input type="text" id="editTitle" required /></div>
+          <div class="form-group"><label>Slug</label><input type="text" id="editSlug" /><small id="editSlugHelp" style="color:#64748b;display:block;margin-top:6px;">Slug moet uniek zijn</small></div>
+          <div class="form-group"><label>Categorie</label><select id="editCategory"></select></div>
+          <div class="form-group"><label>Afbeeldings URL</label><input type="text" id="editImage" placeholder="https://..." /></div>
+          <div class="form-group"><label>Samenvatting</label><input type="text" id="editExcerpt" /></div>
+          <div class="form-group"><label>Inhoud (Markdown)</label><textarea id="editContent"></textarea></div>
+          <div class="form-group"><label><input type="checkbox" id="editFeatured" /> Featured Post</label></div>
+          <div class="form-group"><label>Publicatiedatum (wanneer status = gepubliceerd)</label><input type="datetime-local" id="editPublishedDate" /><small style="color:#64748b;display:block;margin-top:6px;">Leeg laten om huidige datum/tijd te gebruiken</small></div>
+          <div class="form-group"><label>Status</label><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;"><label><input type="radio" name="editStatus" value="draft" /> Draft</label><label><input type="radio" name="editStatus" value="published" /> Publiceer nu</label><label><input type="radio" name="editStatus" value="scheduled" /> Plan publicatie</label><input type="datetime-local" id="editSchedule" style="display:none;" /></div><small style="color:#64748b;display:block;margin-top:6px;">Bij plannen blijft de post draft tot de geplande tijd.</small></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;"><button type="button" class="btn btn-secondary" onclick="closeEditModal()">Annuleren</button><button type="submit" class="btn btn-primary">Opslaan</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="admin-panel.js" defer></script>
+</body>
+</html>
