@@ -330,7 +330,16 @@ module.exports = function(database) {
   router.get('/stats', authenticateAdmin, async (req, res) => {
     try {
       // Get all posts (including drafts)
-      const allPosts = database.posts || [];
+      let allPosts = [];
+      if (database.pool) {
+        // PostgreSQL
+        const result = await database.pool.query('SELECT * FROM posts');
+        allPosts = result.rows.map(database.mapPostFromDb.bind(database));
+      } else {
+        // In-memory
+        allPosts = database.posts || [];
+      }
+      
       const published = allPosts.filter(p => p.status === 'published').length;
       const drafts = allPosts.filter(p => p.status === 'draft').length;
       
